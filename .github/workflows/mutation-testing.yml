@@ -1,10 +1,36 @@
 name: Mutation Testing
 
+# Cadence: nightly (02:00 UTC) + any PR that touches mutated source files,
+# + manual on-demand via workflow_dispatch.
+#
+# Running mutation testing on every PR is expensive, so the paths filter
+# limits it to PRs that actually touch the files Stryker mutates.
+# The nightly run covers the full scope unconditionally.
 on:
   schedule:
-    # Run mutation testing weekly on Monday at 2 AM UTC
-    - cron: '0 2 * * 1'
-  workflow_dispatch: # Allow manual triggering
+    # Run nightly at 02:00 UTC (previously weekly; nightly gives faster drift detection)
+    - cron: '0 2 * * *'
+  pull_request:
+    paths:
+      - 'src/utils/soroban.ts'
+      - 'src/utils/contract-stats.ts'
+      - 'src/utils/governance.ts'
+      - 'src/lib/contract-events.ts'
+      - 'src/lib/contract-event-stream-state.ts'
+      - 'src/lib/contract/**'
+      - 'src/components/governance/**'
+      - 'src/components/invoice/**'
+      - 'src/components/invoices/**'
+      - 'src/components/payer/**'
+      - 'src/components/admin/**'
+      - 'stryker.conf.json'
+      - 'vitest.config.ts'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Optional: override mutate glob (leave blank for stryker.conf.json default)'
+        required: false
+        default: ''
 
 jobs:
   mutation-testing:
@@ -29,8 +55,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Stryker mutation testing
+        # Do NOT use continue-on-error here — a score below the break threshold
+        # (stryker.conf.json `thresholds.break`) should fail the job so it
+        # surfaces in the PR/nightly run rather than being silently skipped.
         run: pnpm run test:mutation
-        continue-on-error: true
 
       - name: Upload mutation report
         uses: actions/upload-artifact@v4
@@ -40,15 +68,42 @@ jobs:
           path: mutation-report/
           retention-days: 30
 
-      - name: Comment on workflow with results
+      - name: Summarise mutation score
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const reportPath = 'mutation-report/index.html';
-            if (fs.existsSync(reportPath)) {
-              const content = fs.readFileSync(reportPath, 'utf8');
-              // Extract key metrics if available
-              console.log('Mutation testing completed. Report available in artifacts.');
+            const reportPath = 'mutation-report/report.json';
+            if (!fs.existsSync(reportPath)) {
+              core.summary.addRaw('⚠️ Mutation report not found — Stryker may have failed before producing output.');
+              await core.summary.write();
+              return;
             }
+
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            const metrics = report.metrics ?? report.systemUnderTestMetrics?.metrics;
+
+            if (!metrics) {
+              core.summary.addRaw('⚠️ Could not parse mutation score from report.');
+              await core.summary.write();
+              return;
+            }
+
+            const score = metrics.mutationScore?.toFixed(2) ?? 'n/a';
+            const killed = metrics.killed ?? '?';
+            const total = metrics.totalDetected != null
+              ? metrics.totalDetected + (metrics.survived ?? 0)
+              : '?';
+
+            core.summary
+              .addHeading('🧬 Mutation Testing Results', 2)
+              .addTable([
+                [{ data: 'Metric', header: true }, { data: 'Value', header: true }],
+                ['Mutation Score', `${score}%`],
+                ['Killed', String(killed)],
+                ['Total Mutants', String(total)],
+              ])
+              .addLink('View full report (artifact)', '../actions/runs/' + process.env.GITHUB_RUN_ID);
+
+            await core.summary.write();

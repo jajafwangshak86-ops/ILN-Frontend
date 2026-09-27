@@ -586,14 +586,15 @@ export default function MarketplacePage() {
                           formatTokenAmount(
                             inv.amount,
                             defaultToken ??
-                              tokenMap.get(inv.token ?? '') ??
-                              ({
+                              tokenMap.get(inv.token ?? '') ?? {
+                                contractId: '',
+                                name: 'USD Coin',
                                 symbol: 'USDC',
                                 decimals: 7,
-                                contractId: '',
-                                name: '',
-                                iconLabel: '',
-                              } as any)
+                                iconLabel: 'US',
+                                logo: '/tokens/usdc.svg',
+                                isAllowed: true,
+                              }
                           ),
                       },
                       {

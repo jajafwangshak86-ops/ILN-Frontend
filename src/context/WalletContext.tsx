@@ -37,6 +37,15 @@ import { useToast } from './ToastContext';
 
 type WalletProviderName = WalletProviderType;
 
+interface FreighterExtension {
+  setNetwork?: (network: string) => Promise<void>;
+}
+
+interface FreighterWindow extends Window {
+  stellar?: { freighter?: FreighterExtension };
+  freighter?: FreighterExtension;
+}
+
 export const DEFAULT_IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 export const DEFAULT_WARNING_BEFORE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -490,7 +499,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({
     try {
       const targetNetwork = getConfiguredStellarNetwork() === 'mainnet' ? 'PUBLIC' : 'TESTNET';
 
-      const extension = (window as any).stellar?.freighter || (window as any).freighter;
+      const freighterWindow = window as unknown as FreighterWindow;
+      const extension = freighterWindow.stellar?.freighter || freighterWindow.freighter;
       if (extension?.setNetwork) {
         await extension.setNetwork(targetNetwork);
         await checkNetwork();

@@ -22,12 +22,12 @@ The page is **publicly readable** (no login required for users) and is linked fr
 
 The following components are tracked on the status page:
 
-| Component | What it covers |
-|---|---|
-| **Web App** | `app.iln.finance` — Vercel edge deployment |
-| **API / Indexer** | Backend invoice indexer and Supabase REST/Realtime |
-| **Stellar RPC** | `soroban-rpc.stellar.org` connectivity |
-| **Smart Contracts** | Invoice escrow contract availability (automated via on-chain polling, with `SMART_CONTRACT_MANUAL_OVERRIDE` bypass) |
+| Component | What it covers | Automation Status |
+|---|---|---|
+| **Web App** | `app.iln.finance` — Vercel edge deployment | Automated via `check-status-page-components.ts` (with `WEBAPP_MANUAL_OVERRIDE` bypass) |
+| **API / Indexer** | Backend invoice indexer and Supabase REST/Realtime | Automated via `check-status-page-components.ts` (with `INDEXER_MANUAL_OVERRIDE` bypass) |
+| **Stellar RPC** | `soroban-rpc.stellar.org` connectivity | Automated via `check-status-page-components.ts` (with `STELLAR_RPC_MANUAL_OVERRIDE` bypass) |
+| **Smart Contracts** | Invoice escrow contract availability | Automated via `check-status-page-components.ts` / `check-contract-health.ts` (with `SMART_CONTRACT_MANUAL_OVERRIDE` bypass) |
 
 ---
 

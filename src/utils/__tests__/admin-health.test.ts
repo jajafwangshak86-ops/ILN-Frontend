@@ -84,14 +84,14 @@ describe('setProtocolPaused / fetchProtocolHealth interplay', () => {
     fetchProposalsMock.mockResolvedValue([]);
     getNativeXlmBalanceMock.mockResolvedValue(0);
 
-    const result = await setProtocolPaused(true, 'GADMIN', vi.fn());
+    const result = await setProtocolPaused(true, GOVERNANCE_ADMIN_ADDRESS, vi.fn());
     expect(result.paused).toBe(true);
     expect(result.txHash).toEqual(expect.any(String));
 
     const health = await fetchProtocolHealth();
     expect(health.paused).toBe(true);
 
-    await setProtocolPaused(false, 'GADMIN', vi.fn());
+    await setProtocolPaused(false, GOVERNANCE_ADMIN_ADDRESS, vi.fn());
   });
 });
 
@@ -103,7 +103,7 @@ describe('executeReadyProposals', () => {
       { id: 2, status: 'Passed' },
     ] as any;
 
-    const results = await executeReadyProposals(proposals, 'GADMIN', vi.fn());
+    const results = await executeReadyProposals(proposals, GOVERNANCE_ADMIN_ADDRESS, vi.fn());
     expect(results).toEqual([
       { id: 1, txHash: 'tx-1' },
       { id: 2, txHash: 'tx-2' },

@@ -219,7 +219,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
             submitterAddress={invoice.freelancer}
             currentWallet={address ?? undefined}
             status={invoice.status}
-            whitelist={(invoice as any).whitelist || []}
+            whitelist={invoice.whitelist || []}
           />
 
           <ActivityFeed invoiceId={invoiceId} />

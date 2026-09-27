@@ -14,36 +14,84 @@ The old `/analytics/freelancer` and `/analytics/leaderboard` paths are preserved
 
 ## Canonical Routes
 
-| Route Path                 | Description                                                           | Primary Consumer | Access Type              |
-| :------------------------- | :-------------------------------------------------------------------- | :--------------- | :----------------------- |
-| `/`                        | Landing page explaining the ILN protocol and entry points             | Public           | Unauthenticated          |
-| `/freelancer`              | Freelancer workspace to submit invoices and track status              | Freelancer       | Authenticated Wallet     |
-| `/payer`                   | Payer dashboard for viewing and settling unpaid invoices              | Payer            | Authenticated Wallet     |
-| `/lp`                      | Liquidity Provider dashboard for viewing and managing funded invoices | LP               | Authenticated Wallet     |
-| `/lp/compare`              | Comparison tool for comparing invoices                                | LP               | Authenticated Wallet     |
-| `/marketplace`             | Marketplace listing active invoices open for funding                  | LP / Public      | Unauthenticated / Wallet |
-| `/submit`                  | On-chain invoice submission form                                      | Freelancer       | Authenticated Wallet     |
-| `/governance`              | Governance portal for viewing, creating, and voting on proposals      | Public / Voter   | Authenticated Wallet     |
-| `/dashboard`               | Actor-agnostic dashboard overview                                     | Active Actor     | Authenticated Wallet     |
-| `/notifications`           | Wallet notification inbox with read/unread state (polled, see below)  | Active Actor     | Authenticated Wallet     |
-| `/analytics`               | Freelancer-specific performance and earnings analytics                | Freelancer       | Authenticated Wallet     |
-| `/stats`                   | Protocol-wide public stats (TVL, volume, yield, dispute rate)         | Public           | Unauthenticated          |
-| `/leaderboard`             | Canonical protocol leaderboard for Payers, Freelancers, and LPs       | Public           | Unauthenticated          |
-| `/referrals`               | Referral dashboard showing referral links and earnings stats          | Public / User    | Authenticated Wallet     |
-| `/roadmap`                 | Public roadmap showing product timeline                               | Public           | Unauthenticated          |
-| `/offline`                 | PWA offline fallback page                                             | Public           | Unauthenticated          |
-| `/i/[id]`                  | Public invoice detail view                                            | Public           | Unauthenticated          |
-| `/pay/[id]`                | Payer checkout page for settling individual invoices                  | Payer            | Authenticated Wallet     |
-| `/pay/[id]/dispute`        | Invoice dispute page                                                  | Payer            | Authenticated Wallet     |
-| `/profile/[address]`       | Public reputation profile and transaction activity history            | Public           | Unauthenticated          |
-| `/tokens`                  | Approved token list and decimal metadata                              | Public           | Unauthenticated          |
-| `/invoices/batch`          | Batch invoice submission workflow                                     | Freelancer       | Authenticated Wallet     |
-| `/admin`                   | Protocol health and administrative controls                           | Admin            | Authenticated Wallet     |
-| `/admin/actions`          | Admin actions management (live)                                       | Admin            | Authenticated Wallet     |
-| `/admin/flags`            | Admin feature flag controls (live)                                    | Admin            | Authenticated Wallet     |
-| `/governance/[id]`         | Governance proposal detail and voting                                 | Voter            | Authenticated Wallet     |
-| `/governance/new`          | New governance proposal form                                          | Voter            | Authenticated Wallet     |
-| `/governance/how-it-works` | Governance explainer                                                  | Public           | Unauthenticated          |
+| Route Path                 | Description                                                           | Primary Consumer | Access Type                   |
+| :------------------------- | :-------------------------------------------------------------------- | :--------------- | :---------------------------- |
+| `/`                        | Landing page explaining the ILN protocol and entry points             | Public           | Unauthenticated               |
+| `/freelancer`              | Freelancer workspace to submit invoices and track status              | Freelancer       | Authenticated Wallet          |
+| `/payer`                   | Payer dashboard for viewing and settling unpaid invoices              | Payer            | Authenticated Wallet          |
+| `/lp`                      | Liquidity Provider dashboard for viewing and managing funded invoices | LP               | Authenticated Wallet          |
+| `/lp/compare`              | Comparison tool for comparing invoices                                | LP               | Authenticated Wallet          |
+| `/marketplace`             | Marketplace listing active invoices open for funding                  | LP / Public      | Unauthenticated / Wallet      |
+| `/submit`                  | On-chain invoice submission form                                      | Freelancer       | Authenticated Wallet          |
+| `/governance`              | Governance portal for viewing, creating, and voting on proposals      | Public / Voter   | Authenticated Wallet          |
+| `/dashboard`               | Actor-agnostic dashboard overview                                     | Active Actor     | Authenticated Wallet          |
+| `/notifications`           | Wallet notification inbox with read/unread state (polled, see below)  | Active Actor     | Authenticated Wallet          |
+| `/analytics`               | Freelancer-specific performance and earnings analytics                | Freelancer       | Authenticated Wallet          |
+| `/stats`                   | Protocol-wide public stats (TVL, volume, yield, dispute rate)         | Public           | Unauthenticated               |
+| `/leaderboard`             | Canonical protocol leaderboard for Payers, Freelancers, and LPs       | Public           | Unauthenticated               |
+| `/referrals`               | Referral dashboard showing referral links and earnings stats          | Public / User    | Authenticated Wallet          |
+| `/roadmap`                 | Public roadmap showing product timeline                               | Public           | Unauthenticated               |
+| `/offline`                 | PWA offline fallback page                                             | Public           | Unauthenticated               |
+| `/i/[id]`                  | Public invoice detail view                                            | Public           | Unauthenticated               |
+| `/pay/[id]`                | Payer checkout page for settling individual invoices                  | Payer            | Authenticated Wallet          |
+| `/pay/[id]/dispute`        | Invoice dispute page                                                  | Payer            | Authenticated Wallet          |
+| `/profile/[address]`       | Public reputation profile and transaction activity history            | Public           | Unauthenticated               |
+| `/tokens`                  | Approved token list and decimal metadata                              | Public           | Unauthenticated               |
+| `/invoices/batch`          | Batch invoice submission workflow                                     | Freelancer       | Authenticated Wallet          |
+| `/admin`                   | Protocol health and administrative controls                           | Admin            | Admin wallet only (see below) |
+| `/admin/actions`           | Admin actions management (live)                                       | Admin            | Public read-only (see below)  |
+| `/admin/flags`             | Admin feature flag controls (live)                                    | Admin            | Admin wallet only (see below) |
+| `/governance/[id]`         | Governance proposal detail and voting                                 | Voter            | Authenticated Wallet          |
+| `/governance/new`          | New governance proposal form                                          | Voter            | Authenticated Wallet          |
+| `/governance/how-it-works` | Governance explainer                                                  | Public           | Unauthenticated               |
+
+## Admin Route Authorization
+
+The three `/admin/*` routes have deliberately different access requirements.
+Undocumented admin routes are a security-through-obscurity smell, so the exact
+mechanism and its enforcement boundary are stated here explicitly (#914, #915).
+
+**Mechanism.** Admin identity is a wallet-address comparison, not a role claim
+or session: the connected wallet address must equal
+`NEXT_PUBLIC_GOVERNANCE_ADMIN_ADDRESS` (see `src/constants.ts`). The check
+itself is `isAdminAddress()` in `src/utils/admin-health.ts`; server-side code
+(empty of browser dependencies) uses the equivalent `requireAdmin()` /
+`assertAdminAddress()` in `src/lib/admin-gate.ts`.
+
+**Enforcement boundary — read the caveat.** Page-level gating is
+**client-side only**: `/admin` (`app/admin/page.tsx`) and `/admin/flags`
+(`app/admin/flags/page.tsx`) are `'use client'` components that render an
+"Access Restricted" / "Admin access required" screen for non-admin wallets
+(and `/admin/flags` additionally `router.replace('/admin')`). There is no
+Next.js middleware or server-component check — there cannot be one, because a
+wallet address is a client-side credential with no session cookie for the
+server to verify. A modified client can bypass the UI gate.
+
+That bypass grants nothing, because the real enforcement lives elsewhere:
+
+- **Reads are public.** Protocol health and the admin action history are
+  public on-chain state read via Soroban RPC. No privileged data is served to
+  the page, so bypassing the gate discloses nothing.
+- **Writes require the admin key.** Pause/unpause, ready-proposal execution,
+  and token allowlist changes must be signed in Freighter by the admin wallet
+  itself. The Stellar contract rejects non-admin signers on-chain regardless
+  of what the UI allowed. Client-side mutations additionally fail fast via
+  `assertAdminAddress()` before any transaction is built.
+
+| Route            | Requirement               | Enforcement                                                                                                                                            |
+| :--------------- | :------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin`         | Admin wallet only         | Client-side `isAdminAddress` gate rendering "Admin access required" (403-style screen, HTTP 200); writes enforced on-chain by admin-signer requirement |
+| `/admin/flags`   | Admin wallet only         | Client-side `isAdminAddress` gate rendering "Access Restricted" + redirect to `/admin`; read-only flag display, no mutating controls                   |
+| `/admin/actions` | **Public, intentionally** | No gate by design: read-only transparency log (`AdminActionHistoryPanel` with `publicView`) sourced from the on-chain admin action history view        |
+
+Every privileged action on `/admin` and `/admin/flags` is also emitted as a
+structured Sentry audit event via `logAdminAction()` (`src/lib/auditLog.ts`),
+so misuse or bypass attempts leave a queryable `admin_audit.*` trail.
+
+**Regression coverage:** `src/lib/__tests__/admin-gate.test.ts` and
+`src/utils/__tests__/admin-route-access.test.ts` assert that non-admin
+addresses are denied by the gate, the mutation guards, and the route-access
+matrix (#916).
 
 ## Notifications Route Data Source
 

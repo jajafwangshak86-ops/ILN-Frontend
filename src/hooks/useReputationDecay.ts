@@ -47,7 +47,7 @@ export function useReputationDecay(
         // For demonstration, let's say it's 100,000 ledgers ago, so not decaying unless we mock it older.
         // To ensure the UX can be tested, if last_activity_ledger is missing, we can simulate an older one or a recent one.
         // We will parse it from the reputation object once added.
-        const lastActivity = (rep as any).last_activity_ledger || 0;
+        const lastActivity = rep.last_activity_ledger ?? 0;
 
         const ledgersSinceActive = Math.max(0, currentLedger - lastActivity);
         const isDecaying = ledgersSinceActive > DECAY_THRESHOLD_LEDGERS && lastActivity > 0;

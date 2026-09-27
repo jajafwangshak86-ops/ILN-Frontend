@@ -128,6 +128,10 @@ export default function ReputationHistoryChart({ events }: { events: ReputationU
               <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
               <Tooltip
                 formatter={
+                  // as-any justification: recharts v2 `Tooltip` formatter prop
+                  // types do not cover our tuple-returning custom formatter that
+                  // reads `item.payload.eventType`. Cast is confined to this prop.
+                  // See https://github.com/recharts/recharts/issues (Tooltip formatter typing).
                   ((value: any, _name: any, item: any) => {
                     const eventType = item.payload?.eventType as ReputationEventType;
                     const eventLabel = EVENT_LABELS[eventType] ?? eventType;
@@ -135,6 +139,10 @@ export default function ReputationHistoryChart({ events }: { events: ReputationU
                   }) as any
                 }
                 labelFormatter={
+                  // as-any justification: recharts v2 `labelFormatter` types do
+                  // not expose the tooltip payload items we read for the ledger
+                  // timestamp. Cast is confined to this prop.
+                  // See https://github.com/recharts/recharts/issues (Tooltip labelFormatter typing).
                   ((label: any, items: any) => {
                     const payload = items?.[0]?.payload as ReputationHistoryPoint | undefined;
                     if (!payload) return label;

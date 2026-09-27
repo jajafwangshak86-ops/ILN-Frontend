@@ -11,6 +11,11 @@ type TokenLike =
   | ApprovedToken
   | (Partial<ApprovedToken> & Pick<ApprovedToken, 'contractId' | 'symbol' | 'decimals'>);
 
+interface TokenAvailability {
+  isAllowed?: boolean;
+  unavailableReason?: string;
+}
+
 interface TokenSelectorProps {
   label: string;
   tooltip?: string | ReactNode;
@@ -65,13 +70,13 @@ function getTokenIconLabel(
   );
 }
 
-function isTokenAllowed(token: Partial<TokenLike>): boolean {
-  return (token as any).isAllowed ?? true;
+function isTokenAllowed(token: Partial<TokenLike> & TokenAvailability): boolean {
+  return token.isAllowed ?? true;
 }
 
-function getUnavailableReason(token: Partial<TokenLike>): string {
+function getUnavailableReason(token: Partial<TokenLike> & TokenAvailability): string {
   return (
-    (token as any).unavailableReason ?? 'This token is not currently available for ILN invoices.'
+    token.unavailableReason ?? 'This token is not currently available for ILN invoices.'
   );
 }
 

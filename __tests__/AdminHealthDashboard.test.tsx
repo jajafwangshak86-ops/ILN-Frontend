@@ -4,6 +4,12 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AdminHealthDashboard from '@/app/admin/page';
 
+// ── Audit log mock ─────────────────────────────────────────────────────────
+const mockLogAdminAction = vi.fn();
+vi.mock('@/lib/auditLog', () => ({
+  logAdminAction: (...args: unknown[]) => mockLogAdminAction(...args),
+}));
+
 const adminAddress = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const walletState = {
   address: adminAddress as string | null,
@@ -124,6 +130,37 @@ vi.mock('@/utils/admin-health', () => ({
   isAdminAddress: (address: string | null | undefined) => address === adminAddress,
 }));
 
+// ── Token management mock ──────────────────────────────────────────────────
+const mockApproveToken = vi.fn();
+const mockRemoveToken = vi.fn();
+const mockValidateTokenAddress = vi.fn();
+
+const mockTokens = [
+  {
+    contractId: 'CUSDC0000000000000000000000000000000000000000000000000000',
+    name: 'USD Coin',
+    symbol: 'USDC',
+    decimals: 7,
+    iconLabel: 'US',
+    logo: '/tokens/usdc.svg',
+    isAllowed: true,
+  },
+];
+
+vi.mock('@/hooks/useApprovedTokens', () => ({
+  useApprovedTokens: () => ({
+    tokens: mockTokens,
+    isLoading: false,
+    approveToken: (...args: unknown[]) => mockApproveToken(...args),
+    removeToken: (...args: unknown[]) => mockRemoveToken(...args),
+    validateTokenAddress: (addr: string) => mockValidateTokenAddress(addr),
+  }),
+}));
+
+vi.mock('@/components/admin/FunnelAnalyticsPanel', () => ({
+  default: () => <div data-testid="funnel-analytics-panel" />,
+}));
+
 describe('AdminHealthDashboard', () => {
   beforeEach(() => {
     walletState.address = adminAddress;
@@ -213,6 +250,289 @@ describe('AdminHealthDashboard', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
     expect(setProtocolPaused).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
+});
+
+// ── Audit logging ─────────────────────────────────────────────────────────────
+
+describe('AdminHealthDashboard — audit logging', () => {
+  beforeEach(() => {
+    walletState.address = adminAddress;
+    walletState.signTx.mockReset();
+    fetchProtocolHealth.mockReset();
+    fetchProtocolHealth.mockResolvedValue(mockHealth);
+    fetchAdminActionHistory.mockReset();
+    fetchAdminActionHistory.mockResolvedValue(mockAdminActions);
+    setProtocolPaused.mockReset();
+    setProtocolPaused.mockResolvedValue({ txHash: 'abc', paused: true });
+    executeReadyProposals.mockReset();
+    executeReadyProposals.mockResolvedValue(['tx']);
+    mockLogAdminAction.mockReset();
+    mockApproveToken.mockReset();
+    mockRemoveToken.mockReset();
+    mockValidateTokenAddress.mockReset();
+    mockValidateTokenAddress.mockReturnValue(true);
+  });
+
+  it('emits protocol.pause_requested before the confirmation dialog appears', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Pause' }));
+
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'protocol.pause_requested',
+        actor: adminAddress,
+        page: '/admin',
+      })
+    );
+    await screen.findByRole('dialog');
+  });
+
+  it('emits protocol.pause_confirmed then protocol.pause_succeeded on successful pause', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Pause' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Pause protocol' }));
+
+    await waitFor(() => {
+      expect(setProtocolPaused).toHaveBeenCalledTimes(1);
+    });
+
+    const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+    expect(actions).toContain('protocol.pause_confirmed');
+    expect(actions).toContain('protocol.pause_succeeded');
+  });
+
+  it('emits protocol.pause_failed when setProtocolPaused rejects', async () => {
+    setProtocolPaused.mockRejectedValue(new Error('RPC error'));
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Pause' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Pause protocol' }));
+
+    await waitFor(() => {
+      const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+      expect(actions).toContain('protocol.pause_failed');
+    });
+  });
+
+  it('emits governance.execute_requested before the execute proposals dialog', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Execute Ready Proposals' }));
+
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'governance.execute_requested',
+        actor: adminAddress,
+        page: '/admin',
+      })
+    );
+    await screen.findByRole('dialog');
+  });
+
+  it('emits governance.execute_confirmed then governance.execute_succeeded on confirm', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Execute Ready Proposals' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Execute proposals' }));
+
+    await waitFor(() => {
+      expect(executeReadyProposals).toHaveBeenCalledTimes(1);
+    });
+
+    const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+    expect(actions).toContain('governance.execute_confirmed');
+    expect(actions).toContain('governance.execute_succeeded');
+  });
+
+  it('emits governance.execute_failed when executeReadyProposals rejects', async () => {
+    executeReadyProposals.mockRejectedValue(new Error('contract error'));
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+    await user.click(await screen.findByRole('button', { name: 'Execute Ready Proposals' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Execute proposals' }));
+
+    await waitFor(() => {
+      const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+      expect(actions).toContain('governance.execute_failed');
+    });
+  });
+});
+
+// ── Token management ──────────────────────────────────────────────────────────
+
+describe('AdminHealthDashboard — token management', () => {
+  const VALID_TOKEN_ID = 'CNEWTOKEN000000000000000000000000000000000000000000000000';
+
+  beforeEach(() => {
+    walletState.address = adminAddress;
+    walletState.signTx.mockReset();
+    fetchProtocolHealth.mockReset();
+    fetchProtocolHealth.mockResolvedValue(mockHealth);
+    fetchAdminActionHistory.mockReset();
+    fetchAdminActionHistory.mockResolvedValue(mockAdminActions);
+    setProtocolPaused.mockReset();
+    setProtocolPaused.mockResolvedValue({ txHash: 'abc', paused: true });
+    executeReadyProposals.mockReset();
+    executeReadyProposals.mockResolvedValue(['tx']);
+    mockLogAdminAction.mockReset();
+    mockApproveToken.mockReset();
+    mockApproveToken.mockResolvedValue('signed-xdr');
+    mockRemoveToken.mockReset();
+    mockRemoveToken.mockResolvedValue('signed-xdr');
+    mockValidateTokenAddress.mockReset();
+    mockValidateTokenAddress.mockReturnValue(true);
+  });
+
+  it('renders the approved tokens section with a token address input', async () => {
+    render(<AdminHealthDashboard />);
+    expect(await screen.findByLabelText('Token Contract Address')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Approve Token' })).toBeInTheDocument();
+  });
+
+  it('renders the USDC token in the approved list', async () => {
+    render(<AdminHealthDashboard />);
+    expect(await screen.findByText('USDC')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove USDC' })).toBeInTheDocument();
+  });
+
+  it('calls approveToken after submitting a valid address', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    const input = await screen.findByLabelText('Token Contract Address');
+    await user.type(input, VALID_TOKEN_ID);
+    await user.click(screen.getByRole('button', { name: 'Approve Token' }));
+
+    await waitFor(() => {
+      expect(mockApproveToken).toHaveBeenCalledWith(
+        adminAddress,
+        VALID_TOKEN_ID,
+        walletState.signTx
+      );
+    });
+  });
+
+  it('shows a validation error for an invalid token address without calling approveToken', async () => {
+    mockValidateTokenAddress.mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    const input = await screen.findByLabelText('Token Contract Address');
+    await user.type(input, 'BADADDRESS');
+    await user.click(screen.getByRole('button', { name: 'Approve Token' }));
+
+    expect(mockApproveToken).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Enter a valid Stellar contract address/i)).toBeInTheDocument();
+  });
+
+  it('emits token.approve_submitted and token.approve_succeeded audit events on success', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    const input = await screen.findByLabelText('Token Contract Address');
+    await user.type(input, VALID_TOKEN_ID);
+    await user.click(screen.getByRole('button', { name: 'Approve Token' }));
+
+    await waitFor(() => {
+      const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+      expect(actions).toContain('token.approve_submitted');
+      expect(actions).toContain('token.approve_succeeded');
+    });
+  });
+
+  it('emits token.approve_failed when approveToken rejects', async () => {
+    mockApproveToken.mockRejectedValue(new Error('ledger rejected'));
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    const input = await screen.findByLabelText('Token Contract Address');
+    await user.type(input, VALID_TOKEN_ID);
+    await user.click(screen.getByRole('button', { name: 'Approve Token' }));
+
+    await waitFor(() => {
+      const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+      expect(actions).toContain('token.approve_failed');
+    });
+  });
+
+  it('opens a remove-token confirmation dialog when Remove button is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    await user.click(await screen.findByRole('button', { name: 'Remove USDC' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/Remove approved token/i)).toBeInTheDocument();
+  });
+
+  it('emits token.remove_requested before the confirmation dialog', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    await user.click(await screen.findByRole('button', { name: 'Remove USDC' }));
+    await screen.findByRole('dialog');
+
+    expect(mockLogAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'token.remove_requested',
+        actor: adminAddress,
+        page: '/admin',
+      })
+    );
+  });
+
+  it('calls removeToken and emits token.remove_confirmed/succeeded after confirming', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    await user.click(await screen.findByRole('button', { name: 'Remove USDC' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Remove token' }));
+
+    await waitFor(() => {
+      expect(mockRemoveToken).toHaveBeenCalledTimes(1);
+    });
+
+    const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+    expect(actions).toContain('token.remove_confirmed');
+    expect(actions).toContain('token.remove_succeeded');
+  });
+
+  it('emits token.remove_failed when removeToken rejects', async () => {
+    mockRemoveToken.mockRejectedValue(new Error('contract reject'));
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    await user.click(await screen.findByRole('button', { name: 'Remove USDC' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Remove token' }));
+
+    await waitFor(() => {
+      const actions = mockLogAdminAction.mock.calls.map(([p]) => p.action);
+      expect(actions).toContain('token.remove_failed');
+    });
+  });
+
+  it('cancels the remove-token dialog without calling removeToken', async () => {
+    const user = userEvent.setup();
+    render(<AdminHealthDashboard />);
+
+    await user.click(await screen.findByRole('button', { name: 'Remove USDC' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(mockRemoveToken).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });

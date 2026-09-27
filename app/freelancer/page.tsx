@@ -203,12 +203,12 @@ function FreelancerPageContent() {
         TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE)
       );
 
-      if ((sendResult as any).status === 'PENDING') {
-        let txStatus = await server.getTransaction((sendResult as any).hash);
+      if (sendResult.status === 'PENDING') {
+        let txStatus = await server.getTransaction(sendResult.hash);
         let tries = 0;
-        while ((txStatus as any).status === 'NOT_FOUND' && tries < 20) {
+        while (txStatus.status === 'NOT_FOUND' && tries < 20) {
           await new Promise((r) => setTimeout(r, 1500));
-          txStatus = await server.getTransaction((sendResult as any).hash);
+          txStatus = await server.getTransaction(sendResult.hash);
           tries++;
         }
 
@@ -218,10 +218,10 @@ function FreelancerPageContent() {
         updateToast(toastId, {
           type: 'success',
           title: t('freelancer.toast.submitted'),
-          txHash: (sendResult as any).hash,
+          txHash: sendResult.hash,
         });
       } else {
-        throw new Error(`Transaction rejected: ${(sendResult as any).status}`);
+        throw new Error(`Transaction rejected: ${sendResult.status}`);
       }
     } catch (err: any) {
       updateToast(toastId, {

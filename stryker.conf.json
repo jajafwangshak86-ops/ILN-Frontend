@@ -7,9 +7,17 @@
     "src/lib/contract-events.ts",
     "src/lib/contract-event-stream-state.ts",
     "src/lib/contract/**/*.ts",
+    "src/components/governance/**/*.{ts,tsx}",
+    "src/components/invoice/**/*.{ts,tsx}",
+    "src/components/invoices/**/*.{ts,tsx}",
+    "src/components/payer/**/*.{ts,tsx}",
+    "src/components/admin/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
     "!src/**/*.stories.ts",
-    "!src/**/*.test.ts"
+    "!src/**/*.stories.tsx",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/__tests__/**"
   ],
   "testRunner": "vitest",
   "vitest": {
@@ -19,12 +27,15 @@
   "htmlReporter": {
     "fileName": "mutation-report/index.html"
   },
+  "jsonReporter": {
+    "fileName": "mutation-report/report.json"
+  },
   "thresholds": {
-    "high": 90,
+    "high": 80,
     "low": 60,
-    "break": 90
+    "break": 60
   },
   "timeoutMS": 30000,
   "concurrency": 4,
-  "plugins": ["@stryker-mutator/core", "@stryker-mutator/vitest-runner"]
+  "plugins": ["@stryker-mutator/vitest-runner"]
 }

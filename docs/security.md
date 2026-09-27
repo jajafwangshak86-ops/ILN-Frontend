@@ -57,7 +57,22 @@ Configured in `next.config.ts` across all incoming routes:
 
 ---
 
-## 3. Additional Security Headers
+## 3. Admin Surface Hardening
+
+The `/admin` and `/admin/flags` routes received a dedicated security audit and hardening pass (Issues #916–#922). The closing report is at [docs/admin-surface-security-review.md](admin-surface-security-review.md).
+
+Summary of controls in place:
+
+- **Access gating:** `isAdminAddress()` in `src/utils/admin-health.ts` checks the connected wallet against `GOVERNANCE_ADMIN_ADDRESS` at render time. A 403 state is shown and no data is fetched for unauthorized wallets.
+- **Confirmation dialog:** `src/components/admin/AdminConfirmDialog.tsx` replaces `window.confirm` for all destructive admin actions (pause/unpause, governance execution, token removal). The dialog is accessible (`role="dialog"`, focus trap, Escape-to-cancel, Cancel as initial focus).
+- **Structured audit logging:** `src/lib/auditLog.ts` emits fire-and-forget Sentry events tagged by `admin_audit.action` and `admin_audit.actor` for every admin action lifecycle stage. See [sentry-integration.md](sentry-integration.md) for query patterns.
+- **Elevated test coverage:** `vitest.config.ts` enforces 90/90/80/90 (lines/functions/branches/statements) on `src/components/admin/**`, `src/lib/auditLog.ts`, and `src/utils/admin-health.ts` — higher than the general component threshold.
+
+Residual risk (mock contract stubs, client-side-only access check) is documented in [admin-surface-security-review.md § Residual risk](admin-surface-security-review.md#7-residual-risk).
+
+---
+
+## 4. Additional Security Headers
 
 - `X-Content-Type-Options: nosniff` — Prevents MIME-sniffing vulnerabilities.
 - `X-Frame-Options: DENY` — Prevents clickjacking.

@@ -106,6 +106,10 @@ The primary route tree lives in `app/`. `/analytics` is the authenticated freela
 
 A small legacy `src/app/` tree still exists for older route experiments/tests and should be treated carefully when moving code.
 
+Admin authorization (`/admin`, `/admin/flags` gated on the governance admin wallet, `/admin/actions` intentionally public) is enforced client-side with on-chain contract enforcement for writes; the full mechanism and its boundary are documented in the [Route Map](route-map.md) ("Admin Route Authorization"), with regression tests described in [testing.md](testing.md).
+
+Type-safety posture for the codebase (before/after `as any` metrics, strictness flags, lint gate) is consolidated in the [type-safety report](type-safety-report.md).
+
 ```
 app/
 ├── admin/                       # Admin health and protocol configuration

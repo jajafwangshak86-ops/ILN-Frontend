@@ -90,8 +90,8 @@ This section is the plain-language "are we ready?" story behind the [Frontend Ma
 
 ### Admin Surface Hardening
 
-- **In place:** sensitive admin actions now go through an accessible in-page confirmation dialog instead of `window.confirm`, and `/admin` is gated to the configured governance admin address. The admin audit log shows on-chain multisig signer rotations (flagged as security-sensitive) and parameter updates.
-- **Not yet launch-ready:** pausing/unpausing the protocol and executing ready proposals do not call the contract. Approving or removing an accepted token asks the admin wallet to sign but never submits the transaction, yet the UI reports success. None of these actions are audit-log event sources (walkthrough findings F2–F4, F8). Until fixed, protocol-level admin operations must be performed directly against the contract with the multisig, not through the frontend.
+- **In place:** sensitive admin actions go through an accessible in-page confirmation dialog instead of `window.confirm`, `/admin` and `/admin/flags` are gated to the configured governance admin address, every privileged action emits a structured Sentry audit event (`src/lib/auditLog.ts`), and the admin surface has elevated test coverage thresholds enforced in `vitest.config.ts`. See [admin-surface-security-review.md](admin-surface-security-review.md) for the full category closing report.
+- **Not yet launch-ready:** pausing/unpausing the protocol and executing ready proposals do not call the contract. Approving or removing an accepted token asks the admin wallet to sign but never submits the transaction. None of these actions are on-chain audit-log event sources (walkthrough findings F2–F4, F8). Until fixed, protocol-level admin operations must be performed directly against the contract with the multisig, not through the frontend.
 
 ### Performance
 

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * SQL Schema for Reminders:
@@ -45,7 +45,7 @@ const supabase =
             throw makeMissingEnvError();
           },
         }
-      ) as any);
+      ) as unknown as SupabaseClient);
 
 // For client-side use
 export { supabase };

@@ -89,7 +89,7 @@ async function buildTransferLPPositionTx(funder: string, invoiceId: bigint, newO
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${'error' in sim ? sim.error : 'unknown error'}`);
   }
   return rpc.assembleTransaction(tx, sim).build();
 }
@@ -154,7 +154,7 @@ export default function LPTransferModal({ invoice, onClose, onSuccess }: LPTrans
     try {
       const tx = await buildTransferLPPositionTx(address!, invoice.id, recipient.trim());
       const txHash = await execute(
-        tx as any,
+        tx,
         `Transfer ${formatTokenAmount(invoice.amount, selectedToken)} LP position #${invoice.id}`
       );
       if (txHash) {

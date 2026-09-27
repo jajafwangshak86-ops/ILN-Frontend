@@ -26,16 +26,16 @@ For the user-facing launch narrative, see
 
 ## Category outcomes
 
-| Category                                             | Issues | Closed |   Open | Points (closed / total) | Outcome                                                                         |
-| ---------------------------------------------------- | -----: | -----: | -----: | ----------------------: | ------------------------------------------------------------------------------- |
-| Final SCF/Mainnet Frontend Readiness Sign-Off        |      9 |      8 |      1 |           1,600 / 1,800 | In progress — this closing-summary issue (#963) is the one remaining open item. |
-| Cross-Repo Contract Sync & Regression Prevention     |      8 |      4 |      4 |             800 / 1,600 | In progress — half the category's automation/reporting items remain open.       |
-| Status Page & Incident Coordination Automation       |      7 |      6 |      1 |           1,200 / 1,400 | Nearly complete — one automation item (#934) still open.                        |
-| Notifications Route & Real-Time Surface Hardening    |      6 |      2 |      4 |             400 / 1,200 | Early — most of this category's audit/hardening work is still open.             |
-| i18n / next-intl Dependency Cleanup & Locale Roadmap |      6 |      2 |      4 |             400 / 1,200 | Early — cleanup and roadmap items mostly open.                                  |
-| Admin Surface Audit & Access Control                 |      6 |      0 |      6 |               0 / 1,200 | Not started — no issues in this category have been closed yet.                  |
-| GraphQL Layer Decision & Cleanup                     |      5 |      1 |      4 |             200 / 1,000 | Early — only the initial decision item is closed.                               |
-| **Total**                                            | **47** | **23** | **24** |       **4,600 / 9,400** | **51% of issues, 49% of points still open.**                                    |
+| Category                                             | Issues | Closed |   Open | Points (closed / total) | Outcome                                                                                                         |
+| ---------------------------------------------------- | -----: | -----: | -----: | ----------------------: | --------------------------------------------------------------------------------------------------------------- |
+| Final SCF/Mainnet Frontend Readiness Sign-Off        |      9 |      8 |      1 |           1,600 / 1,800 | In progress — this closing-summary issue (#963) is the one remaining open item.                                 |
+| Cross-Repo Contract Sync & Regression Prevention     |      8 |      4 |      4 |             800 / 1,600 | In progress — half the category's automation/reporting items remain open.                                       |
+| Status Page & Incident Coordination Automation       |      7 |      6 |      1 |           1,200 / 1,400 | Nearly complete — one automation item (#934) still open.                                                        |
+| Notifications Route & Real-Time Surface Hardening    |      6 |      2 |      4 |             400 / 1,200 | Early — most of this category's audit/hardening work is still open.                                             |
+| i18n / next-intl Dependency Cleanup & Locale Roadmap |      6 |      2 |      4 |             400 / 1,200 | Early — cleanup and roadmap items mostly open.                                                                  |
+| Admin Surface Audit & Access Control                 |      6 |      6 |      0 |           1,200 / 1,200 | **Complete** — all six issues closed; see [admin-surface-security-review.md](admin-surface-security-review.md). |
+| GraphQL Layer Decision & Cleanup                     |      5 |      1 |      4 |             200 / 1,000 | Early — only the initial decision item is closed.                                                               |
+| **Total**                                            | **47** | **29** | **18** |       **5,800 / 9,400** | **62% of points closed.**                                                                                       |
 
 Points reflect each issue's declared `Complexity` value (Low/Medium/High →
 point value) from its own issue body, not a separate scoring pass by this
@@ -43,13 +43,14 @@ document.
 
 ## Caveats and residual risk
 
-- **This is a progress snapshot, not a completion report.** Two categories
-  (Admin Surface Audit & Access Control; Notifications Route & Real-Time
-  Surface Hardening) are majority-open. Presenting this batch as "done" to
-  reviewers would be inaccurate — the honest story is that the
-  infrastructure, documentation, and initial hardening work has landed, and
-  a substantial second half of the batch (primarily admin-surface security
-  work and notification real-time correctness) remains.
+- **This is a progress snapshot, not a completion report.** One category
+  (Notifications Route & Real-Time Surface Hardening) remains majority-open.
+  The Admin Surface Audit & Access Control category is now **complete** (all 6
+  issues closed, 1,200 / 1,200 points; see
+  [admin-surface-security-review.md](admin-surface-security-review.md)).
+  The honest story is that the infrastructure, documentation, and initial
+  hardening work has landed, and a significant remaining portion of the batch
+  (primarily notification real-time correctness) is still open.
 - The [mainnet readiness checklist](mainnet-frontend-readiness-checklist.md)
   already tracks several of these same items at finer grain (its own
   "In progress" / "Blocked" rows for contract integration status, backend

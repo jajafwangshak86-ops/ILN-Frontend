@@ -13,6 +13,7 @@ This directory contains the main contributor and operations documentation for th
 ## Quality and Performance
 
 - **[as-any-cast-inventory.md](as-any-cast-inventory.md)** - Complete audit and categorization of all 66 `as any` type casts outside test suites and the prioritized elimination roadmap.
+- **[type-safety-report.md](type-safety-report.md)** - Before/after report for the `as any` hardening pass (66 → 30 casts, strictness flags, lint gate).
 - **[slos.md](slos.md)** - Frontend Service Level Objectives (SLOs), SLIs, and concrete monitoring signals for performance, availability, and financial journeys.
 - **[LIGHTHOUSE_CI.md](LIGHTHOUSE_CI.md)** - Lighthouse CI performance budgets, thresholds, and report review guidance.
 - **[VISUAL_REGRESSION_WORKFLOW.md](VISUAL_REGRESSION_WORKFLOW.md)** - Chromatic visual regression workflow and approval process.

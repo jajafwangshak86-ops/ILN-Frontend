@@ -70,7 +70,11 @@ export default function CompareInvoicesScreen() {
       const discountPercent = inv.discount_rate / 100;
       // APY = (yield / amount) * (365 / days) * 100
       const apy = daysToDue > 0 ? (discountPercent / 100) * (365 / daysToDue) * 100 : 0;
-      const score = scores.get(inv.payer) ?? 0;
+      const payerScore = scores.get(inv.payer);
+      // The scores map holds full PayerScoreResult objects; unwrap the numeric
+      // score here so sorting, display, and comparison all work on numbers.
+      // (Previously an `as any` escape let the whole object leak into `score`.)
+      const score = payerScore?.score ?? 0;
 
       const token = tokenMap.get(inv.token ?? defaultToken?.contractId ?? '') ?? defaultToken;
 
@@ -84,6 +88,7 @@ export default function CompareInvoicesScreen() {
         discountRate: discountPercent,
         daysToDue,
         score,
+        scoreDetail: payerScore ?? null,
         token: token?.symbol ?? 'USDC',
         payer: inv.payer,
         dueDate: inv.due_date,
@@ -138,10 +143,8 @@ export default function CompareInvoicesScreen() {
   const comparisonSummary = useMemo(() => {
     if (stats.length < 2) return '';
 
-    const sortedByApy = [...stats].sort((a, b) => ((b.apy as any) || 0) - ((a.apy as any) || 0));
-    const sortedByRisk = [...stats].sort(
-      (a, b) => ((b.score as any) || 0) - ((a.score as any) || 0)
-    );
+    const sortedByApy = [...stats].sort((a, b) => (b.apy || 0) - (a.apy || 0));
+    const sortedByRisk = [...stats].sort((a, b) => (b.score || 0) - (a.score || 0));
 
     const bestApy = sortedByApy[0];
     const bestRisk = sortedByRisk[0];
@@ -190,42 +193,53 @@ export default function CompareInvoicesScreen() {
     );
   }
 
-  const rows = [
+  type ComparisonStat = (typeof stats)[number];
+  type ComparisonField = Extract<
+    keyof ComparisonStat,
+    'amount' | 'apy' | 'discountRate' | 'score' | 'yield' | 'daysToDue'
+  >;
+
+  const rows: Array<{
+    label: string;
+    field: ComparisonField | string;
+    format?: (s: ComparisonStat) => React.ReactNode;
+    noHighlight?: boolean;
+  }> = [
     {
       label: 'Amount',
       field: 'amount',
-      format: (s: any) => formatTokenAmount(s.amountRaw, s.tokenMetadata),
+      format: (s) => formatTokenAmount(s.amountRaw, s.tokenMetadata ?? undefined),
     },
     { label: 'Token', field: 'token', noHighlight: true },
     {
       label: 'Discount Rate',
       field: 'discountRate',
-      format: (s: any) => `${s.discountRate.toFixed(2)}%`,
+      format: (s) => `${s.discountRate.toFixed(2)}%`,
     },
     {
       label: 'Due Date',
       field: 'dueDate',
-      format: (s: any) => formatDate(s.dueDate),
+      format: (s) => formatDate(s.dueDate),
       noHighlight: true,
     },
-    { label: 'Payer Score', field: 'score', format: (s: any) => s.score.toString() },
+    { label: 'Payer Score', field: 'score', format: (s) => s.score.toString() },
     {
       label: 'Risk Level',
       field: 'risk',
-      format: (s: any) => <RiskBadge risk={s.risk} score={s.score} />,
+      format: (s) => <RiskBadge risk={s.risk} score={s.scoreDetail} />,
       noHighlight: true,
     },
     {
       label: 'Estimated Yield',
       field: 'yield',
-      format: (s: any) => formatTokenAmount(s.yieldRaw, s.tokenMetadata),
+      format: (s) => formatTokenAmount(s.yieldRaw, s.tokenMetadata ?? undefined),
     },
-    { label: 'APY', field: 'apy', format: (s: any) => `${s.apy.toFixed(2)}%` },
-    { label: 'Days to Maturity', field: 'daysToDue', format: (s: any) => `${s.daysToDue} days` },
+    { label: 'APY', field: 'apy', format: (s) => `${s.apy.toFixed(2)}%` },
+    { label: 'Days to Maturity', field: 'daysToDue', format: (s) => `${s.daysToDue} days` },
     {
       label: 'Payer Address',
       field: 'payer',
-      format: (s: any) => formatAddress(s.payer),
+      format: (s) => formatAddress(s.payer),
       noHighlight: true,
     },
   ];
@@ -273,7 +287,9 @@ export default function CompareInvoicesScreen() {
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const values = row.noHighlight ? [] : stats.map((s) => (s as any)[row.field]);
+                  const values = row.noHighlight
+                    ? []
+                    : stats.map((s) => Number(s[row.field as ComparisonField]) || 0);
                   const bestIndex = row.noHighlight ? -1 : getBestValueIndex(row.field, values);
 
                   return (
@@ -296,7 +312,7 @@ export default function CompareInvoicesScreen() {
                               idx === bestIndex ? 'text-green-700 font-bold' : ''
                             }`}
                           >
-                            {row.format ? row.format(s) : (s as any)[row.field]}
+                            {row.format ? row.format(s) : String(s[row.field as ComparisonField])}
                             {idx === bestIndex && !row.noHighlight && (
                               <span className="block text-[9px] uppercase tracking-tighter mt-1 text-green-600">
                                 Best Value

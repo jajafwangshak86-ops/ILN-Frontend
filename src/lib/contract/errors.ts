@@ -322,9 +322,9 @@ export function parseContractError(error: unknown): ContractErrorCode | null {
       // In Soroban, errors sometimes come back as JSON payloads
       representations.push(JSON.stringify(error));
 
-      const anyError = error as any;
-      if (typeof anyError.message === 'string') representations.push(anyError.message);
-      if (typeof anyError.error === 'string') representations.push(anyError.error);
+      const record = error as Record<string, unknown>;
+      if (typeof record.message === 'string') representations.push(record.message);
+      if (typeof record.error === 'string') representations.push(record.error);
     } catch {
       // Ignore stringify errors (e.g. circular refs)
     }

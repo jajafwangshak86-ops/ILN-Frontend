@@ -43,7 +43,7 @@ export default function LPWhitelistManager({
   // modification is deferred behind the feature flag exported from soroban.
   const isContractSupported =
     soroban.UPDATE_LP_WHITELIST_SUPPORTED === true &&
-    typeof (soroban as any).updateLPWhitelist === 'function';
+    typeof soroban.updateLPWhitelist === 'function';
 
   useEffect(() => {
     let isMounted = true;
@@ -115,7 +115,7 @@ export default function LPWhitelistManager({
       const newWhitelist = [...localWhitelist.map((lp) => lp.address), resolvedAddress];
 
       if (isContractSupported) {
-        await (soroban as any).updateLPWhitelist({
+        await soroban.updateLPWhitelist({
           invoiceId: BigInt(invoiceId),
           whitelist: newWhitelist,
         });
@@ -162,7 +162,7 @@ export default function LPWhitelistManager({
         .filter((addr) => addr.toLowerCase() !== lpToRemove.toLowerCase());
 
       if (isContractSupported) {
-        await (soroban as any).updateLPWhitelist({
+        await soroban.updateLPWhitelist({
           invoiceId: BigInt(invoiceId),
           whitelist: newWhitelist,
         });

@@ -205,6 +205,30 @@ To ensure consistent caching, loading states, and bundle efficiency across the a
      ```
    - Provide a concise comment documenting why a custom hook in `src/hooks/queries` was not used.
 
+### Type Safety: `as any` Casts
+
+Bare `as any` casts silently defeat TypeScript and were the source of a 60+ instance backlog (see #908, #909, #910, #911). New unjustified casts are blocked by the custom `local/require-as-any-justification` ESLint rule in `eslint.config.mjs` (backed by `eslint-rules/require-as-any-justification.mjs`).
+
+1. **Prefer a real type first.** Before reaching for `as any`:
+   - Extend the domain interface (e.g. add an optional field such as `Invoice.whitelist` or `last_activity_ledger` instead of casting around its absence).
+   - Narrow `unknown` payloads (Soroban `scValToNative` results, Horizon event topics) with `typeof` / `in` checks and `Record<string, unknown>`.
+   - Model optional third-party surface explicitly (e.g. `FreighterWindow`, `TokenAvailability`) and use `as unknown as T` for stubs rather than `as any`.
+2. **If the cast is genuinely unavoidable** (a real third-party type gap such as an untyped `@stellar/freighter-api` experimental method or a `recharts` tooltip formatter signature), document it with a justification comment on the **immediately preceding line**:
+
+   ```typescript
+   // as-any justification: @stellar/freighter-api does not type the
+   // experimental `addTrustline` wallet method, so we cast the module
+   // namespace to reach it. Remove once upstream types include it.
+   // See https://github.com/stellar/freighter/issues/...
+   await (freighter as any).addTrustline?.({
+     assetCode: token.symbol,
+     assetIssuer: token.contractId,
+   });
+   ```
+
+   The comment must state the specific type-system limitation and, where one exists, link the upstream issue/type-definition gap. The lint rule errors when this comment is missing.
+3. **Scope:** the rule is `error` in production code and `warn` in tests/stories/`__tests__` (test doubles and DOM stubs legitimately need loose casts). Keep test casts minimal and typed where cheap to do so.
+
 ### Code Style and Formatting
 
 We use **ESLint** and **Prettier** to maintain consistent code quality.

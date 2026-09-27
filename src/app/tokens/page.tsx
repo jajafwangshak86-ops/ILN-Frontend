@@ -96,6 +96,10 @@ export default function TokensPage() {
     if (!isConnected) return;
     try {
       const freighter = await import('@stellar/freighter-api');
+      // as-any justification: @stellar/freighter-api does not type the
+      // experimental `addTrustline` wallet method, so we cast the module
+      // namespace to reach it. Remove once upstream types include it.
+      // See https://github.com/stellar/freighter/issues (addTrustline typing gap).
       await (freighter as any).addTrustline?.({
         assetCode: token.symbol,
         assetIssuer: token.contractId,

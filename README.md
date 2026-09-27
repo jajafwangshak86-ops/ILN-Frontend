@@ -101,7 +101,7 @@ The app is a single Next.js project (App Router) that talks directly to Soroban 
 └── e2e/                        # Playwright end-to-end specs
 ```
 
-> `src/app/` is a legacy tree kept around for older route experiments and is **not** what Next.js actually serves — `app/` at the repository root is the live route tree. See [Frontend Architecture Overview](docs/architecture.md) for the full explanation and directory-by-directory breakdown.
+> `src/app/` is a legacy tree kept around for older route experiments and is **not** what Next.js actually serves — `app/` at the repository root is the live route tree. See [Frontend Architecture Overview](docs/architecture.md) for the full explanation and directory-by-directory breakdown..
 
 ### Core Component Layers
 

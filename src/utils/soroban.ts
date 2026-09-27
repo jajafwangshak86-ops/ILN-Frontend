@@ -44,6 +44,7 @@ export interface Invoice {
   funder?: string;
   funded_at?: bigint;
   token?: string;
+  whitelist?: string[];
 }
 
 export interface SubmittedInvoiceResult {
@@ -1045,7 +1046,7 @@ export async function submitInvoice(
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${'error' in sim ? sim.error : 'unknown error'}`);
   }
 
   // Extract the predicted invoice ID from simulation retval
@@ -1054,18 +1055,18 @@ export async function submitInvoice(
     const raw = scValToNative(sim.result!.retval);
     // Contract returns Result<u64, Error> — unwrap Ok variant
     if (raw && typeof raw === 'object' && 'ok' in raw) {
-      invoiceId = BigInt((raw as any).ok);
+      invoiceId = BigInt((raw as Record<string, unknown>).ok as string | number | bigint);
     } else if (raw && typeof raw === 'object' && 'Ok' in raw) {
-      invoiceId = BigInt((raw as any).Ok);
+      invoiceId = BigInt((raw as Record<string, unknown>).Ok as string | number | bigint);
     } else {
-      invoiceId = BigInt(raw as any);
+      invoiceId = BigInt(raw as string | number | bigint);
     }
   } catch {
     // If we can't parse it, proceed without the ID — it'll be shown after poll
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any, invoiceId };
+  return { tx: finalTx, invoiceId };
 }
 
 export interface UpdateInvoiceArgs {
@@ -1107,14 +1108,17 @@ export async function updateInvoice(args: UpdateInvoiceArgs): Promise<{ tx: Tran
 
   const sim = await server.simulateTransaction(tx);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${'error' in sim ? sim.error : 'unknown error'}`);
   }
 
   const finalTx = rpc.assembleTransaction(tx, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
-export async function cancelInvoice(freelancer: string, invoiceId: bigint): Promise<{ tx: any }> {
+export async function cancelInvoice(
+  freelancer: string,
+  invoiceId: bigint
+): Promise<{ tx: Transaction }> {
   // Use a default sequence number / account for preparing or real one if needed
   let account: Account;
   try {
@@ -1135,11 +1139,11 @@ export async function cancelInvoice(freelancer: string, invoiceId: bigint): Prom
 
   const sim = await server.simulateTransaction(txUrl);
   if (!rpc.Api.isSimulationSuccess(sim)) {
-    throw new Error(`Simulation failed: ${(sim as any).error}`);
+    throw new Error(`Simulation failed: ${'error' in sim ? sim.error : 'unknown error'}`);
   }
 
   const finalTx = rpc.assembleTransaction(txUrl, sim).build();
-  return { tx: finalTx as any };
+  return { tx: finalTx };
 }
 
 export interface ReferralStats {
@@ -1165,9 +1169,10 @@ export async function getReferralStats(code: string): Promise<ReferralStats> {
       !Array.isArray(native) &&
       ('total_invoices' in native || 'total_volume' in native)
     ) {
+      const record = native as Record<string, unknown>;
       return {
-        total_invoices: Number((native as any).total_invoices ?? 0),
-        total_volume: BigInt((native as any).total_volume ?? 0),
+        total_invoices: Number(record.total_invoices ?? 0),
+        total_volume: BigInt((record.total_volume as string | number | bigint) ?? 0),
       };
     }
     // Some contract revisions return the raw referral invoice count (u64).

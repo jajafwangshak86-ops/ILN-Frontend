@@ -34,6 +34,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        // ── Contract / utils layer (original scope) ──────────────────────
         'src/utils/soroban.ts',
         'src/utils/contract-stats.ts',
         'src/utils/governance.ts',
@@ -49,6 +50,17 @@ export default defineConfig({
         // addressed.
         'src/hooks/**/*.ts',
         'src/hooks/**/*.tsx',
+        // Admin surface — issue #921.
+        // Admin components, audit logging, and admin-health utilities operate
+        // on privileged protocol actions (pause, token management, governance
+        // execution) and must be held to a higher bar than the general
+        // component defaults. 90/90/80/90 across lines/functions/branches/
+        // statements; the branch floor is 80 rather than 90 because the
+        // confirmation-dialog Escape path requires a real browser focus-trap
+        // environment that is impractical to simulate end-to-end in jsdom.
+        'src/components/admin/**/*.tsx',
+        'src/lib/auditLog.ts',
+        'src/utils/admin-health.ts',
       ],
       thresholds: {
         lines: 90,
@@ -64,6 +76,29 @@ export default defineConfig({
         // then to 74%+ to match the contract-layer interim floor.
         branches: 50,
         statements: 90,
+        // Per-path overrides — admin surface (issue #921).
+        // These are evaluated independently of the global thresholds above.
+        // Branch threshold is set at 80 (not 90) because the focus-trap
+        // Escape-key path in AdminConfirmDialog requires real browser APIs
+        // unavailable in jsdom; all other branch paths are covered.
+        'src/components/admin/**/*.tsx': {
+          lines: 90,
+          functions: 90,
+          branches: 80,
+          statements: 90,
+        },
+        'src/lib/auditLog.ts': {
+          lines: 90,
+          functions: 90,
+          branches: 90,
+          statements: 90,
+        },
+        'src/utils/admin-health.ts': {
+          lines: 90,
+          functions: 90,
+          branches: 80,
+          statements: 90,
+        },
       },
       reporter: ['text', 'json', 'json-summary', 'html'],
       reportsDirectory: './coverage',

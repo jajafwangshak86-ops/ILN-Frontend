@@ -46,6 +46,14 @@ pnpm run test:e2e
 
 Accessibility checks are integrated into the Vitest-based component test suites and should be used for UI changes that affect semantics, tab order, or ARIA state. The repo already depends on `jest-axe`.
 
+### Admin authorization regression tests
+
+Non-admin rejection is pinned by `src/lib/__tests__/admin-gate.test.ts` (server-safe gate: 403-shaped denials for non-admin, null, and disconnected wallets) and `src/utils/__tests__/admin-route-access.test.ts` (per-route access matrix plus fail-fast mutation guards on `setProtocolPaused` / `executeReadyProposals`). See the "Admin Route Authorization" section in [route-map.md](route-map.md) for the enforcement model these tests protect.
+
+### Type-safety report
+
+The consolidated before/after metrics for the `as any` hardening pass (66 → 30 casts, strictness flags enabled, lint gate) live in [type-safety-report.md](type-safety-report.md).
+
 ### Storybook and Chromatic
 
 Storybook stories should be added alongside high-value components when the component has meaningful variations such as loading, empty, error, or success states. Start Storybook locally with:

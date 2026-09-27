@@ -543,7 +543,9 @@ export default function DashboardPage() {
       <BulkActionBar
         selectedInvoices={selectedInvoices}
         onClearSelection={() => setSelectedIds(new Set())}
-        onRefresh={refetch as any}
+        onRefresh={() => {
+          void refetch();
+        }}
       />
 
       <Footer />

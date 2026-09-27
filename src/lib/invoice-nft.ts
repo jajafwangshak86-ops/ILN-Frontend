@@ -166,7 +166,8 @@ function normalizeEventNameFromTopic(topic: unknown): string | undefined {
   if (typeof topic === 'string') return topic;
   if (topic && typeof topic === 'object') {
     // Common `scValToNative` output for symbols can be a string already, but keep this for safety.
-    const maybe = (topic as any).sym ?? (topic as any).symbol ?? (topic as any).name;
+    const record = topic as Record<string, unknown>;
+    const maybe = record.sym ?? record.symbol ?? record.name;
     if (typeof maybe === 'string') return maybe;
   }
   return undefined;
@@ -204,11 +205,14 @@ async function resolveMetadataFromUri(uri: string): Promise<InvoiceNftMetadata |
     : uri;
   try {
     const json = await fetchJson<Record<string, unknown>>(normalized);
+    const attributes = Array.isArray(json.attributes)
+      ? (json.attributes as Array<{ trait_type?: string; value?: unknown }>)
+      : undefined;
     return {
       name: typeof json.name === 'string' ? json.name : undefined,
       description: typeof json.description === 'string' ? json.description : undefined,
       image: typeof json.image === 'string' ? json.image : undefined,
-      attributes: Array.isArray(json.attributes) ? (json.attributes as any) : undefined,
+      attributes,
       raw: json,
     };
   } catch {
@@ -231,22 +235,22 @@ async function tryResolveMetadataFromRpc(tokenId: bigint): Promise<InvoiceNftMet
           contract: NFT_CONTRACT_ID,
           function: NFT_METADATA_METHOD,
           args: [nativeToScVal(tokenId, { type: 'u64' })],
-        }) as any
+        })
       )
       .setTimeout(30)
       .build();
 
-    const sim = await server.simulateTransaction(tx as any);
+    const sim = await server.simulateTransaction(tx);
     if (!rpc.Api.isSimulationSuccess(sim) || !sim.result?.retval) return undefined;
     const native = scValToNative(sim.result.retval);
 
     const uri =
       typeof native === 'string'
         ? native
-        : typeof (native as any)?.ok === 'string'
-          ? (native as any).ok
-          : typeof (native as any)?.Ok === 'string'
-            ? (native as any).Ok
+        : typeof (native as Record<string, unknown>)?.ok === 'string'
+          ? ((native as Record<string, unknown>).ok as string)
+          : typeof (native as Record<string, unknown>)?.Ok === 'string'
+            ? ((native as Record<string, unknown>).Ok as string)
             : findFirstUri(native);
 
     if (!uri) return undefined;
